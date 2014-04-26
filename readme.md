@@ -6,7 +6,7 @@ To run a private registry, launch a container from this image and bind a volume
 with your SSL cert and key and then specify environment variables to define the
 certificate and key in the container.  For example:
 
-`docker run -i -t -p 443 -v /path/to/cert_and_key:/opt/ssl -e SSL_CERT_PATH=/opt/ssl/cert.crt -e SSL_CERT_KEY_PATH=/opt/ssl/cert.key shipyard/private-registry`
+`docker run -i -t -p 443 -v /path/to/cert_and_key:/opt/ssl -e SSL_CERT_PATH=/opt/ssl/cert.crt -e SSL_CERT_KEY_PATH=/opt/ssl/cert.key shipyard/docker-private-registry`
 
 # SSL
 Until https://github.com/dotcloud/docker/pull/2687 is fixed, a valid (from a 
