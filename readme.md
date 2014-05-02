@@ -12,7 +12,7 @@ certificate and key in the container.  For example:
 Until https://github.com/dotcloud/docker/pull/2687 is fixed, a valid (from a 
 recognized CA) SSL certificate is required.
 
-# Mangement
+# Management
 There is a simple management application written in Flask that you can use
 to manage registry users.  To access the management application, create a 
 container from this image and visit `/manage`.
