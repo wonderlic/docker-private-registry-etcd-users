@@ -5,6 +5,7 @@ SSL_CERT_PATH=${SSL_CERT_PATH:-}
 SSL_CERT_KEY_PATH=${SSL_CERT_KEY_PATH:-}
 CACHE_REDIS_PASSWORD=${REDIS_PASSWORD:-docker}
 CACHE_LRU_REDIS_PASSWORD=${REDIS_PASSWORD:-docker}
+PASSWORD_FILE=${USER_DB:-/etc/registry.users}
 
 export CACHE_REDIS_PASSWORD
 export CACHE_LRU_REDIS_PASSWORD
@@ -75,7 +76,7 @@ http {
             proxy_set_header Authorization  "";
             location / {
                 auth_basic "$REGISTRY_NAME";
-                auth_basic_user_file /etc/registry.users;
+                auth_basic_user_file $PASSWORD_FILE;
                 proxy_pass http://registry;
             }
             location /v1/_ping {
@@ -94,7 +95,7 @@ http {
             location /manage/ { try_files \$uri @manage; }
             location @manage {
                 auth_basic "$REGISTRY_NAME";
-                auth_basic_user_file /etc/registry.users;
+                auth_basic_user_file $PASSWORD_FILE;
                 proxy_redirect off;
                 include uwsgi_params;
                 uwsgi_param SCRIPT_NAME /manage;
@@ -119,7 +120,7 @@ if [ ! -z "$SSL_CERT_PATH" ]; then
             proxy_set_header Authorization  "";
             location / {
                 auth_basic "$REGISTRY_NAME";
-                auth_basic_user_file /etc/registry.users;
+                auth_basic_user_file $PASSWORD_FILE;
                 proxy_pass http://registry;
             }
             location /v1/_ping {
@@ -138,7 +139,7 @@ if [ ! -z "$SSL_CERT_PATH" ]; then
             location /manage/ { try_files \$uri @manage; }
             location @manage {
                 auth_basic "$REGISTRY_NAME";
-                auth_basic_user_file /etc/registry.users;
+                auth_basic_user_file $PASSWORD_FILE;
                 proxy_redirect off;
                 include uwsgi_params;
                 uwsgi_param SCRIPT_NAME /manage;
@@ -224,8 +225,8 @@ autorestart=true
 EOF
 
 # create password file if needed
-if [ ! -e "/etc/registry.users" ] ; then
-    htpasswd -bc /etc/registry.users admin $ADMIN_PASSWORD
+if [ ! -e $PASSWORD_FILE ] ; then
+    htpasswd -bc $PASSWORD_FILE admin $ADMIN_PASSWORD    
 fi
 
 # configure registry
