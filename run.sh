@@ -49,13 +49,6 @@ http {
 	gzip on;
 	gzip_disable "msie6";
 
-	# gzip_vary on;
-	# gzip_proxied any;
-	# gzip_comp_level 6;
-	# gzip_buffers 16 8k;
-	# gzip_http_version 1.1;
-	# gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
-
 	##
 	# Virtual Host Configs
 	##
@@ -200,8 +193,7 @@ stopsignal=QUIT
 [program:registry]
 priority=10
 user=root
-command=gunicorn --access-logfile - --debug --max-requests 5000 --graceful-timeout 3600 -t 3600 -k gevent -b 0.0.0.0:5000 -w 4 wsgi:application
-directory=/docker-registry
+command=docker-registry
 autostart=true
 autorestart=true
 stopsignal=QUIT
@@ -226,11 +218,8 @@ EOF
 
 # create password file if needed
 if [ ! -e $PASSWORD_FILE ] ; then
-    htpasswd -bc $PASSWORD_FILE admin $ADMIN_PASSWORD    
+    htpasswd -bc $PASSWORD_FILE admin $ADMIN_PASSWORD
 fi
 
-# configure registry
-cd /docker-registry
-bash setup-configs.sh
 # run supervisor
 supervisord -c /etc/supervisor/supervisor.conf -n
