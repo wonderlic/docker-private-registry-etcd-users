@@ -9,103 +9,74 @@ export CACHE_REDIS_PASSWORD
 export CACHE_LRU_REDIS_PASSWORD
 
 # nginx config
-cat << EOF > /usr/local/openresty/nginx/conf/registry.conf
-user root;
-daemon off;
-worker_processes 4;
-pid /run/nginx.pid;
+cat << EOF > /etc/nginx/nginx.conf
+  daemon off;
+  events {
+    worker_connections 2048;
+  }
 
-events {
-	worker_connections 2048;
-}
+  http {
 
-http {
-	sendfile on;
-	tcp_nopush on;
-	tcp_nodelay on;
-	keepalive_timeout 65;
-	types_hash_max_size 2048;
-	# server_tokens off;
+  upstream registry {
+    server localhost:5000;
+  }
 
-	server_names_hash_bucket_size 64;
-	server_name_in_redirect on;
+  upstream manage {
+    server localhost:4000;
+  }
 
-	include /usr/local/openresty/nginx/conf/mime.types;
-	default_type application/octet-stream;
+  server {
+    listen 80;
+    server_name registry.core-os.net;
 
-	##
-	# Logging Settings
-	##
+    proxy_set_header Host \$http_host;   # required for docker client's sake
+    proxy_set_header X-Real-IP \$remote_addr; # pass on real client's IP
+    proxy_set_header Authorization  "";
 
-	access_log /var/log/nginx/access.log;
-	error_log /var/log/nginx/error.log;
+    client_max_body_size 0; # disable any limits to avoid HTTP 413 for large image uploads
 
-	##
-	# Gzip Settings
-	##
+    # required to avoid HTTP 411: see Issue #1486 (https://github.com/dotcloud/docker/issues/1486)
+    chunked_transfer_encoding on;
 
-	gzip on;
-	gzip_disable "msie6";
+    location /v1/_ping {
+      auth_basic off;
+      proxy_pass http://registry;
+    }
 
-	##
-	# Virtual Host Configs
-	##
-        upstream manage {
-          server localhost:4000;
-        }
+    location /v1/users {
+      auth_basic off;
+      proxy_pass http://registry;
+    }
 
-        upstream registry {
-          server localhost:5000;
-        }
+    location /static {
+      alias /app/static;
+      expires 1d;
+    }
 
-        server {
-            listen 80;
+    location = /manage { rewrite ^ /manage/; }
+    location /manage/ { try_files \$uri @manage; }
+    location @manage {
+      auth_basic "$REGISTRY_NAME";
+      auth_basic_user_file $PASSWORD_FILE;
+      proxy_redirect off;
+      include uwsgi_params;
+      uwsgi_param SCRIPT_NAME /manage;
+      uwsgi_modifier1 30;
+      uwsgi_pass unix:/tmp/uwsgi-manage.sock;
+    }
 
-            client_max_body_size 0;
-            proxy_set_header Host \$http_host;
-            proxy_set_header X-Forwarded-Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Scheme \$scheme;
-            proxy_set_header Authorization  "";
+    location / {
+    #  auth_basic "$REGISTRY_NAME";
+    #  auth_basic_user_file $PASSWORD_FILE;
 
-            location /v1/_ping {
-                auth_basic off;
-                proxy_pass http://registry;
-            }
-            location /v1/users {
-                auth_basic off;
-                proxy_pass http://registry;
-            }
+    #  if (\$http_x_forwarded_proto != "https") {
+    #    rewrite ^(.*)\$ https://\$host\$uri permanent;
+    #  }
+    #  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains;";
+      proxy_pass http://registry;
+    }
 
-            location / {
-                auth_basic "$REGISTRY_NAME";
-                auth_basic_user_file $PASSWORD_FILE;
-
-                if (\$http_x_forwarded_proto != "https") {
-                    rewrite ^(.*)\$ https://\$host\$1 permanent;
-                }
-                proxy_pass http://registry;
-                add_header Strict-Transport-Security "max-age=31536000; includeSubDomains;";
-            }
-
-            location /static {
-                alias /app/static;
-                expires 1d;
-            }
-
-            location = /manage { rewrite ^ /manage/; }
-            location /manage/ { try_files \$uri @manage; }
-            location @manage {
-                auth_basic "$REGISTRY_NAME";
-                auth_basic_user_file $PASSWORD_FILE;
-                proxy_redirect off;
-                include uwsgi_params;
-                uwsgi_param SCRIPT_NAME /manage;
-                uwsgi_modifier1 30;
-                uwsgi_pass unix:/tmp/uwsgi-manage.sock;
-            }
-        }
+  }
 }
 EOF
 
@@ -173,7 +144,7 @@ stopsignal=QUIT
 [program:nginx]
 priority=50
 user=root
-command=/usr/local/openresty/nginx/sbin/nginx -c /usr/local/openresty/nginx/conf/registry.conf
+command=nginx
 directory=/tmp
 autostart=true
 autorestart=true
