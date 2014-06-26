@@ -1,33 +1,31 @@
 #!/bin/bash
-ADMIN_PASSWORD=${ADMIN_PASSWORD:-docker}
 REGISTRY_NAME=${REGISTRY_NAME:-Docker Registry}
 CACHE_REDIS_PASSWORD=${REDIS_PASSWORD:-docker}
 CACHE_LRU_REDIS_PASSWORD=${REDIS_PASSWORD:-docker}
 PASSWORD_FILE=${USER_DB:-/etc/registry.users}
-
+ETCD_ENDPOINT=${ETCD_ENDPOINT:-127.0.0.1:4001}
+SERVER_NAME=${SERVER_NAME:-\"\"}
 export CACHE_REDIS_PASSWORD
 export CACHE_LRU_REDIS_PASSWORD
 
 # nginx config
 cat << EOF > /etc/nginx/nginx.conf
   daemon off;
+  user root;
   events {
     worker_connections 2048;
   }
 
   http {
 
+  include /etc/nginx/mime.types;
   upstream registry {
     server localhost:5000;
   }
 
-  upstream manage {
-    server localhost:4000;
-  }
-
   server {
     listen 80;
-    server_name registry.core-os.net;
+    server_name $SERVER_NAME;
 
     proxy_set_header Host \$http_host;   # required for docker client's sake
     proxy_set_header X-Real-IP \$remote_addr; # pass on real client's IP
@@ -48,49 +46,19 @@ cat << EOF > /etc/nginx/nginx.conf
       proxy_pass http://registry;
     }
 
-    location /static {
-      alias /app/static;
-      expires 1d;
-    }
-
-    location = /manage { rewrite ^ /manage/; }
-    location /manage/ { try_files \$uri @manage; }
-    location @manage {
+    location / {
       auth_basic "$REGISTRY_NAME";
       auth_basic_user_file $PASSWORD_FILE;
-      proxy_redirect off;
-      include uwsgi_params;
-      uwsgi_param SCRIPT_NAME /manage;
-      uwsgi_modifier1 30;
-      uwsgi_pass unix:/tmp/uwsgi-manage.sock;
-    }
 
-    location / {
-    #  auth_basic "$REGISTRY_NAME";
-    #  auth_basic_user_file $PASSWORD_FILE;
-
-    #  if (\$http_x_forwarded_proto != "https") {
-    #    rewrite ^(.*)\$ https://\$host\$uri permanent;
-    #  }
-    #  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains;";
+      if (\$http_x_forwarded_proto != "https") {
+        rewrite ^(.*)\$ https://\$host\$uri permanent;
+      }
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains;";
       proxy_pass http://registry;
     }
 
   }
 }
-EOF
-
-# uwsgi config (manage)
-cat << EOF > /etc/manage.ini
-[uwsgi]
-chdir = /app
-socket = /tmp/uwsgi-manage.sock
-workers = 8
-buffer-size = 32768
-master = true
-max-requests = 5000
-static-map = /static=/app/static
-module = wsgi:application
 EOF
 
 # redis config
@@ -132,28 +100,23 @@ autostart=true
 autorestart=true
 stopsignal=QUIT
 
-[program:manage]
-priority=20
-user=root
-command=/usr/local/bin/uwsgi --ini /etc/manage.ini
-directory=/app
-autostart=true
-autorestart=true
-stopsignal=QUIT
-
 [program:nginx]
 priority=50
 user=root
-command=nginx
+command=/usr/sbin/nginx
+directory=/tmp
+autostart=true
+autorestart=true
+
+[program:confd]
+priority=50
+user=root
+command=confd -interval 60 -node $ETCD_ENDPOINT -verbose
+
 directory=/tmp
 autostart=true
 autorestart=true
 EOF
-
-# create password file if needed
-if [ ! -e $PASSWORD_FILE ] ; then
-    htpasswd -bc $PASSWORD_FILE admin $ADMIN_PASSWORD
-fi
 
 # run supervisor
 supervisord -c /etc/supervisor/supervisor.conf -n
