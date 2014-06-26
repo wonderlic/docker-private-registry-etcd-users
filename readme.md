@@ -1,27 +1,22 @@
 # Docker Registry (private)
-This uses the `stackbrew/registry` as a base and adds basic auth via
-Nginx. Note that you should provide your own SSL
+This uses the `registry` as a base and adds basic auth via Nginx. Note that you should provide your own SSL
 
 # Usage
 To run a private registry,
 
-`docker run -i -t shipyard/docker-private-registry`
+`docker run -i -t colegleason/docker-private-registry`
 
 # Management
-There is a simple management application written in Flask that you can use
-to manage registry users.  To access the management application, create a
-container from this image and visit `/manage`.
+To add users, you must add the htpasswd hash to etcd like this:
 
-The default username is `admin` with a password of `docker`.  You can change
-the password at run via environment variables (see below).
+`curl -L -v -X PUT http://$ETCD_ENDPOINT/v2/keys/registry/users/username -d
+value=$(htpasswd -nb username password)`
 
 # Environment
-* `ADMIN_PASSWORD`: Use a custom admin password (default: docker)
 * `REGISTRY_NAME`: Custom name for registry (used when prompted for auth)
 
 # Ports
 * 80
-* 5000
 
 # Running on S3
 To run with Amazon S3 as the backing store, you will need the following environment variables:
