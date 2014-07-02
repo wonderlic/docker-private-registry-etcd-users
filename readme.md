@@ -1,35 +1,22 @@
 # Docker Registry (private)
-This uses the `stackbrew/registry` as a base and adds basic auth via Nginx.
+This uses the `registry` as a base and adds basic auth via Nginx. Note that you should provide your own SSL
 
 # Usage
-To run a private registry, launch a container from this image and bind a volume
-with your SSL cert and key and then specify environment variables to define the
-certificate and key in the container.  For example:
+To run a private registry,
 
-`docker run -i -t -p 443 -v /path/to/cert_and_key:/opt/ssl -e SSL_CERT_PATH=/opt/ssl/cert.crt -e SSL_CERT_KEY_PATH=/opt/ssl/cert.key shipyard/docker-private-registry`
-
-# SSL
-Until https://github.com/dotcloud/docker/pull/2687 is fixed, a valid (from a 
-recognized CA) SSL certificate is required.
+`docker run -i -t colegleason/docker-private-registry`
 
 # Management
-There is a simple management application written in Flask that you can use
-to manage registry users.  To access the management application, create a 
-container from this image and visit `/manage`.
+To add users, you must add the htpasswd hash to etcd like this:
 
-The default username is `admin` with a password of `docker`.  You can change
-the password at run via environment variables (see below).
+`curl -L -v -X PUT http://$ETCD_ENDPOINT/v2/keys/registry/users/username -d
+value=$(htpasswd -nb username password)`
 
 # Environment
-* `ADMIN_PASSWORD`: Use a custom admin password (default: docker)
 * `REGISTRY_NAME`: Custom name for registry (used when prompted for auth)
-* `SSL_CERT_PATH`: SSL Certificate path
-* `SSL_CERT_KEY_PATH`: SSL Certificate key path
 
 # Ports
 * 80
-* 443
-* 5000
 
 # Running on S3
 To run with Amazon S3 as the backing store, you will need the following environment variables:
