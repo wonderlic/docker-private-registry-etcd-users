@@ -20,4 +20,18 @@ RUN mv confd /usr/local/bin/confd
 ADD registry.users.tmpl /etc/confd/templates/
 ADD registry.users.toml /etc/confd/conf.d/
 add run.sh /usr/local/bin/run
+
+#S3  Bucket fixes
+RUN echo "" >> /etc/boto.cfg
+RUN echo "[S3]" >> /etc/boto.cfg
+RUN echo "region = eu-west-1" >> /etc/boto.cfg
+
+RUN echo "" >> /docker-registry/config/boto.cfg
+RUN echo "[S3]" >> /docker-registry/config/boto.cfg
+RUN echo "region = eu-west-1" >> /docker-registry/config/boto.cfg
+
+RUN mkdir /config/
+
+RUN grep -v 's3_bucket:'  /docker-registry/config/config_sample.yml > /docker-registry/config/config_sample.yml.1 && mv /docker-registry/config/config_sample.yml.1 /docker-registry/config/config_sample.yml
+
 cmd ["/usr/local/bin/run"]
