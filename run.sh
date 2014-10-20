@@ -50,9 +50,10 @@ cat << EOF > /etc/nginx/nginx.conf
       auth_basic "$REGISTRY_NAME";
       auth_basic_user_file $PASSWORD_FILE;
 
-      if (\$http_x_forwarded_proto != "https") {
-        rewrite ^(.*)\$ https://\$host\$uri permanent;
-      }
+      #if (\$http_x_forwarded_proto != "https") {
+      #  rewrite ^(.*)\$ https://\$host\$uri permanent;
+      #}
+      
       add_header Strict-Transport-Security "max-age=31536000; includeSubDomains;";
       proxy_pass http://registry;
     }
