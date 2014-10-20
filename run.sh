@@ -112,7 +112,7 @@ autorestart=true
 [program:confd]
 priority=50
 user=root
-command=confd -interval 60 -node $ETCD_ENDPOINT -verbose
+command=confd -backend etcd -node $ETCD_ENDPOINT -verbose
 
 directory=/tmp
 autostart=true

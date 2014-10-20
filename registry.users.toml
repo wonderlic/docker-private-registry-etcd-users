@@ -1,6 +1,6 @@
 [template]
 keys = [
-  "registry/users",
+  "/registry/users",
 ]
 owner = "nginx"
 mode = "0644"
