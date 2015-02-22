@@ -4,7 +4,7 @@ This uses the `registry` as a base and adds basic auth via Nginx. Note that you 
 # Usage
 To run a private registry,
 
-`docker run -i -t colegleason/docker-private-registry`
+`docker run -i -t wonderlic/docker-private-registry-etcd`
 
 # Management
 To add users, you must add the htpasswd hash to etcd like this:

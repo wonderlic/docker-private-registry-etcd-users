@@ -1,2 +1,2 @@
-{{range $user := .registry_users }}{{$user.Value}}
+{{range gets "/registry/users/*"}}{{.Value}}
 {{end}}
