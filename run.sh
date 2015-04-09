@@ -3,7 +3,6 @@ REGISTRY_NAME=${REGISTRY_NAME:-Docker Registry}
 CACHE_REDIS_PASSWORD=${REDIS_PASSWORD:-docker}
 CACHE_LRU_REDIS_PASSWORD=${REDIS_PASSWORD:-docker}
 PASSWORD_FILE=${USER_DB:-/etc/registry.users}
-ETCD_ENDPOINT=${ETCD_ENDPOINT:-127.0.0.1:4001}
 SERVER_NAME=${SERVER_NAME:-\"\"}
 export CACHE_REDIS_PASSWORD
 export CACHE_LRU_REDIS_PASSWORD
@@ -112,7 +111,8 @@ autorestart=true
 [program:confd]
 priority=50
 user=root
-command=confd -interval 60 -backend etcd -node $ETCD_ENDPOINT -verbose
+environment=ETCDCTL_PEERS=$ETCDCTL_PEERS
+command=confd -interval 60 -backend etcd -verbose
 
 directory=/tmp
 autostart=true
