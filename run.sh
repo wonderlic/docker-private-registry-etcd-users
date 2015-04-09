@@ -111,7 +111,7 @@ autorestart=true
 [program:confd]
 priority=50
 user=root
-environment=ETCDCTL_PEERS=$ETCDCTL_PEERS
+environment=ETCDCTL_PEERS="$ETCDCTL_PEERS"
 command=confd -interval 60 -backend etcd -verbose
 
 directory=/tmp
